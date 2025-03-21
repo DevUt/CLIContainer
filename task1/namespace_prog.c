@@ -8,6 +8,7 @@
 #include <sys/utsname.h>
 #include <sched.h>
 #include <sys/syscall.h>
+#include <fcntl.h>
 
 #define errExit(msg)        \
     do                      \
@@ -95,9 +96,10 @@ int main() {
 
    // ------------------ WRITE CODE HERE ------------------
 
+    child_pid = clone(child_function, child_stack + CHILD_STACK_SIZE, 
+            CLONE_NEWUTS | CLONE_NEWPID, pipefd );
 
-
-
+    pid_t pid_fd_new = syscall(SYS_pidfd_open, child_pid, 0);
 
 
    // -----------------------------------------------------
@@ -115,7 +117,10 @@ int main() {
     // ------------------ WRITE CODE HERE ------------------
 
 
-
+        setns(pid_fd_new, CLONE_NEWPID);
+        char path[256];
+        snprintf(path, sizeof(path), "/proc/%d/ns/uts", child_pid);
+        int uts_fd = open(path, O_RDONLY);
 
     // -----------------------------------------------------
 
@@ -134,7 +139,7 @@ int main() {
         */
 
         // ------------------ WRITE CODE HERE ------------------
-
+        setns(uts_fd, CLONE_NEWUTS);
 
 
         // -----------------------------------------------------

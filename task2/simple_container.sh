@@ -11,10 +11,15 @@ gcc -o container_prog container_prog.c
 cp container_prog $SIMPLE_CONTAINER_ROOT/
 
 # 1.1: Copy any required libraries to execute container_prog to the new root container filesystem 
+list="$(ldd container_prog | egrep -o '/lib.*\.[0-9]')"
+for i in $list; do
+  cp --parents "$i" "${SIMPLE_CONTAINER_ROOT}";
+done
 
 
 echo -e "\n\e[1;32mOutput Subtask 2a\e[0m"
 # 1.2: Execute container_prog in the new root filesystem using chroot. You should pass "subtask1" as an argument to container_prog
+sudo chroot $SIMPLE_CONTAINER_ROOT ./container_prog subtask1
 
 
 
@@ -27,11 +32,15 @@ echo -e "\n\e[1;32mOutput Subtask 2b\e[0m"
 
 
 echo -e "\nHostname in the host: $(hostname)"
+sudo unshare -up chroot $SIMPLE_CONTAINER_ROOT ./container_prog subtask2
 
 
 ## Subtask 3: Execute in a new root filesystem with new PID, UTS and IPC namespace + Resource Control
 # Create a new cgroup and set the max CPU utilization to 50% of the host CPU. (Consider only 1 CPU core)
 
+sudo mkdir /sys/fs/cgroup/utkarsh.slice
+sudo echo "50000 100000" > /sys/fs/cgroup/utkarsh.slice/cpu.max
+sudo echo $$ > /sys/fs/cgroup/utkarsh.slice/cgroup.procs
 
 
 echo "__________________________________________"
@@ -40,7 +49,19 @@ echo -e "\n\e[1;32mOutput Subtask 2c\e[0m"
 # Run the container_prog in the new root filesystem with new PID, UTS and IPC namespace
 # You should pass "subtask1" as an argument to container_prog
 
+sudo unshare -up chroot $SIMPLE_CONTAINER_ROOT ./container_prog subtask3
 # Remove the cgroup
+pids=()
+while IFS= read -r line; do
+  pids+=("$line")
+done < /sys/fs/cgroup/utkarsh.slice/cgroup.procs
+
+for pid_t in "${pids[@]}";
+do
+  echo $pid_t
+  echo $pid_t > /sys/fs/cgroup/cgroup.procs
+done
+sudo rmdir /sys/fs/cgroup/utkarsh.slice/
 
 
 # If mounted dependent libraries, unmount them, else ignore
