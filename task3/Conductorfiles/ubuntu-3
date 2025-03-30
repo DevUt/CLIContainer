@@ -1,0 +1,7 @@
+FROM ubuntu:focal
+RUN mkdir -p conductor/
+COPY ./Conductorfiles/ conductor/
+COPY ./setup.sh conductor/
+COPY ./conductor.sh conductor/
+RUN apt-get update && apt-get install -y debootstrap iptables
+
